@@ -14,10 +14,12 @@ func AuthRouter(router *httprouter.Router, db *sql.DB, validate *validator.Valid
 	authService := auth2.NewAuthService(db, validate, authRepository)
 	authController := auth3.NewAuthController(authService)
 
+	router.POST("/api/auth/login", authController.Login)
+	router.POST("/api/auth/logout", authController.Logout)
 	router.POST("/api/auth/register", authController.Register)
-	router.POST("/api/auth/send_verify_code", authController.SendVerifyCode)
-	router.POST("/api/auth/verify_email", authController.VerifyEmail)
-	router.POST("/api/auth/add_password", authController.AddPassword)
-	router.POST("/api/auth/add_information", authController.AddInformation)
-	router.POST("/api/auth/add_optional_information", authController.AddOptionalInformation)
+	router.PUT("/api/auth/send_verify_code", authController.SendVerifyCode)
+	router.PUT("/api/auth/verify_email", authController.VerifyEmail)
+	router.PUT("/api/auth/add_password", authController.AddPassword)
+	router.PUT("/api/auth/add_information", authController.AddInformation)
+	router.PUT("/api/auth/add_optional_information", authController.AddOptionalInformation)
 }

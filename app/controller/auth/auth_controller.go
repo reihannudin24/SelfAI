@@ -11,7 +11,9 @@ import (
 	"time"
 )
 
-type UserController interface {
+type AuthController interface {
+	Login(w http.ResponseWriter, r *http.Request, param httprouter.Param)
+	Logout(w http.ResponseWriter, r *http.Request, param httprouter.Param)
 	Register(w http.ResponseWriter, r *http.Request, param httprouter.Param)
 	SendVerifyCode(w http.ResponseWriter, r *http.Request, param httprouter.Param)
 	VerifyEmail(w http.ResponseWriter, r *http.Request, param httprouter.Param)
@@ -30,15 +32,33 @@ func NewAuthController(service auth.AuthService) *AuthControllerImpl {
 	}
 }
 
-func (controller AuthControllerImpl) Register(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	request := request2.Register{}
+func (controller AuthControllerImpl) Login(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	request := request2.Login{}
 	err := helper.ReadFromRequestBody(r, &request)
 	if err != nil {
 		helper.ErrorController(w, "Invalid request body", err)
 		return
 	}
 
-	response := controller.Service.Register(r.Context(), request)
+	response := controller.Service.Login(r.Context(), request)
+	webResponse := helper2.ModReturnData{
+		Data: response,
+	}
+
+	err = helper.WriteToResponseBody(w, webResponse)
+	if err != nil {
+		helper.ErrorController(w, "Failed to write response", err)
+	}
+}
+
+func (controller AuthControllerImpl) Logout(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	request := request2.Logout{}
+	err := helper.ReadFromRequestBody(r, &request)
+
+	token, err := helper.GetHeaderAuth(r)
+	helper.ErrorController(w, "Failed to write response", err)
+
+	response := controller.Service.Logout(r.Context(), request, token)
 	webResponse := helper2.ModReturnData{
 		Data: response,
 	}
@@ -83,10 +103,32 @@ func (controller AuthControllerImpl) VerifyEmail(w http.ResponseWriter, r *http.
 	helper.ErrorController(w, "Failed to write response", err)
 }
 
+func (controller AuthControllerImpl) Register(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	request := request2.Register{}
+	err := helper.ReadFromRequestBody(r, &request)
+	if err != nil {
+		helper.ErrorController(w, "Invalid request body", err)
+		return
+	}
+
+	response := controller.Service.Register(r.Context(), request)
+	webResponse := helper2.ModReturnData{
+		Data: response,
+	}
+
+	err = helper.WriteToResponseBody(w, webResponse)
+	if err != nil {
+		helper.ErrorController(w, "Failed to write response", err)
+	}
+}
+
 func (controller AuthControllerImpl) AddPassword(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	request := request2.AddPassword{}
 	err := helper.ReadFromRequestBody(r, &request)
-	helper.ErrorController(w, "Invalid request body", err)
+	if err != nil {
+		helper.ErrorController(w, "Invalid request body", err)
+		return
+	}
 
 	token, err := helper.GetHeaderAuth(r)
 	helper.ErrorController(w, "Failed to write response", err)
@@ -97,7 +139,9 @@ func (controller AuthControllerImpl) AddPassword(w http.ResponseWriter, r *http.
 	}
 
 	err = helper.WriteToResponseBody(w, webResponse)
-	helper.ErrorController(w, "Failed to write response", err)
+	if err != nil {
+		helper.ErrorController(w, "Failed to write response", err)
+	}
 }
 
 func (controller AuthControllerImpl) AddInformation(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
@@ -131,9 +175,9 @@ func (controller AuthControllerImpl) AddOptionalInformation(w http.ResponseWrite
 	}
 
 	bio := r.FormValue("bio")
+	theme := r.FormValue("theme")
 	birthdayStr := r.FormValue("birthday")
 
-	// Try multiple date formats
 	dateFormats := []string{
 		time.RFC3339,
 		"2006-01-02",
@@ -168,6 +212,7 @@ func (controller AuthControllerImpl) AddOptionalInformation(w http.ResponseWrite
 	request := request2.AddOptionalInformation{
 		Token:      token,
 		Bio:        bio,
+		Theme:      theme,
 		Birthday:   birthday,
 		FileHeader: fileHeaderPtr,
 	}

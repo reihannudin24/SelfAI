@@ -30,6 +30,25 @@ func (repo *Repository) ValidateExists(table string, column string, value interf
 	return true, user, nil
 }
 
+func (repo *Repository) ValidateExistsGetPassword(table string, column string, value interface{}) (bool, domain.User, error) {
+	if repo.DB == nil {
+		return false, domain.User{}, fmt.Errorf("database connection is nil")
+	}
+
+	query := fmt.Sprintf("SELECT id, email , password FROM %s WHERE %s = ? LIMIT 1", table, column)
+	var user domain.User
+	err := repo.DB.QueryRow(query, value).Scan(&user.ID, &user.Email, &user.Password)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, domain.User{}, nil // No rows found
+		}
+		return false, domain.User{}, fmt.Errorf("error validating record: %w", err)
+	}
+
+	return true, user, nil
+}
+
 func (repo *Repository) ValidateUserExists(table string, column string, value interface{}) (bool, domain.User, error) {
 	if repo.DB == nil {
 		return false, domain.User{}, fmt.Errorf("database connection is nil")

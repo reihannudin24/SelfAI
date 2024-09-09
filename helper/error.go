@@ -32,15 +32,16 @@ type ResponseJson struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
 	Error   interface{} `json:"error"`
+	Data    interface{} `json:"data"`
 }
 
-// Optional: If you need to use this method, make sure it's utilized correctly
-func (e ResponseJson) ResponseMessageJson(status string, code int, message string, error interface{}) ResponseJson {
+func (e ResponseJson) ResponseMessageJson(status string, code int, message string, error interface{}, data interface{}) ResponseJson {
 	return ResponseJson{
 		Status:  status,
 		Code:    code,
 		Message: message,
 		Error:   error,
+		Data:    data,
 	}
 }
 
@@ -130,6 +131,7 @@ func ErrorServiceResponse(code int, status string, message string, data interfac
 		Code:    code,
 		Status:  status,
 		Message: message,
+		Error:   err.Error(),
 		Data:    data,
 	}, err
 }

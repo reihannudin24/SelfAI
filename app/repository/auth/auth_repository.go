@@ -10,6 +10,7 @@ import (
 
 type AuthRepository interface {
 	Login(ctx context.Context, tx *sql.Tx, user domain.User) (domain.User, helper2.ResponseJson, error)
+	Logout(ctx context.Context, tx *sql.Tx, user domain.User) (domain.User, helper2.ResponseJson, error)
 
 	Register(ctx context.Context, tx *sql.Tx, user domain.User) (domain.User, helper2.ResponseJson, error)
 	SendVerifyCode(ctx context.Context, tx *sql.Tx, user domain.User, token string) (domain.User, helper2.ResponseJson, error)

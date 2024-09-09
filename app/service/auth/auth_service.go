@@ -9,16 +9,20 @@ import (
 	helper2 "book_store/helper"
 	"context"
 	"database/sql"
+	"fmt"
 	"github.com/go-playground/validator/v10"
 )
 
 type AuthService interface {
-	Register(ctx context.Context, register request.Register) helper.ReturnResponse
-	SendVerifyCode(ctx context.Context, register request.SendVerifyCode, token string) helper.ReturnResponse
-	VerifyEmail(ctx context.Context, register request.VerifyEmail, token string) helper.ReturnResponse
-	AddPassword(ctx context.Context, register request.AddPassword, token string) helper.ReturnResponse
-	AddInformation(ctx context.Context, register request.AddInformation, token string) helper.ReturnResponse
-	AddOptionalInformation(ctx context.Context, register request.AddOptionalInformation, token string) helper.ReturnResponse
+	Register(ctx context.Context, request request.Register) helper.ReturnResponse
+	SendVerifyCode(ctx context.Context, request request.SendVerifyCode, token string) helper.ReturnResponse
+	VerifyEmail(ctx context.Context, request request.VerifyEmail, token string) helper.ReturnResponse
+	AddPassword(ctx context.Context, request request.AddPassword, token string) helper.ReturnResponse
+	AddInformation(ctx context.Context, request request.AddInformation, token string) helper.ReturnResponse
+	AddOptionalInformation(ctx context.Context, request request.AddOptionalInformation, token string) helper.ReturnResponse
+
+	Login(ctx context.Context, request request.Login) helper.ReturnResponse
+	Logout(ctx context.Context, request request.Logout, token string) helper.ReturnResponse
 }
 
 // UserServiceImpl struct
@@ -62,6 +66,8 @@ func (service *AuthServiceImpl) Register(ctx context.Context, request request.Re
 			helper2.ErrorServiceResponse(500, "ERROR", "Internal Server Error", "Transaction is nil", err)
 		}
 
+		fmt.Printf("Email %s \n", request.Email)
+
 		userReq := domain.User{
 			Email: request.Email,
 		}
@@ -79,6 +85,7 @@ func (service *AuthServiceImpl) Register(ctx context.Context, request request.Re
 			Code:    resJson.Code,
 			Status:  resJson.Status,
 			Message: resJson.Message,
+			Error:   resJson.Error,
 			Data:    userRes,
 		}, nil
 	})
@@ -131,6 +138,7 @@ func (service *AuthServiceImpl) SendVerifyCode(ctx context.Context, request requ
 			Code:    resJson.Code,
 			Status:  resJson.Status,
 			Message: resJson.Message,
+			Error:   resJson.Error,
 			Data:    userRes,
 		}, nil
 
@@ -164,6 +172,7 @@ func (service *AuthServiceImpl) VerifyEmail(ctx context.Context, request request
 			Code:    resJson.Code,
 			Status:  resJson.Status,
 			Message: resJson.Message,
+			Error:   resJson.Error,
 			Data:    userRes,
 		}, nil
 
@@ -176,14 +185,14 @@ func (service *AuthServiceImpl) AddPassword(ctx context.Context, request request
 		helper2.ErrorServiceRequest(err)
 	}
 
+	fmt.Printf("request.Password : ", request.Password)
+	fmt.Printf("request.Password : ", request.Token)
 	// Validate password match
 	if request.Password != request.ConfirmPassword {
 		_, _ = helper2.ErrorServiceResponse(401, "ERROR", "Request Error", "Password doesn't match", err)
 	}
 
-	// Perform transaction
 	return service.performTransaction(ctx, func(tx *sql.Tx) (helper.ReturnResponse, error) {
-		// Prepare user data
 		userReq := domain.User{
 			Token:    request.Token,
 			Password: request.Password,
@@ -203,6 +212,7 @@ func (service *AuthServiceImpl) AddPassword(ctx context.Context, request request
 			Code:    resJson.Code,
 			Status:  resJson.Status,
 			Message: resJson.Message,
+			Error:   resJson.Error,
 			Data:    userRes,
 		}, nil
 	})
@@ -256,6 +266,63 @@ func (service *AuthServiceImpl) AddOptionalInformation(ctx context.Context, requ
 		}
 
 		userRes, resJson, err := service.AuthRepository.AddOptionalInformation(ctx, tx, userReq, token, request.FileHeader)
+		if err != nil {
+			_, _ = helper2.ErrorServiceResponse(resJson.Code, resJson.Status, resJson.Message, resJson.Error, err)
+		}
+		if resJson.Status == "ERROR" {
+			_, _ = helper2.ErrorServiceResponse(resJson.Code, resJson.Status, resJson.Message, resJson.Error, err)
+		}
+
+		return helper.ReturnResponse{
+			Code:    resJson.Code,
+			Status:  resJson.Status,
+			Message: resJson.Message,
+			Data:    userRes,
+		}, nil
+	})
+}
+
+func (service *AuthServiceImpl) Login(ctx context.Context, request request.Login) helper.ReturnResponse {
+	err := service.Validate.Struct(request)
+	if err != nil {
+		helper2.ErrorServiceRequest(err)
+	}
+
+	return service.performTransaction(ctx, func(tx *sql.Tx) (helper.ReturnResponse, error) {
+		userReq := domain.User{
+			Email:    request.Email,
+			Password: request.Password,
+		}
+
+		userRes, resJson, err := service.AuthRepository.Login(ctx, tx, userReq)
+		if err != nil {
+			_, _ = helper2.ErrorServiceResponse(resJson.Code, resJson.Status, resJson.Message, resJson.Error, err)
+		}
+		if resJson.Status == "ERROR" {
+			_, _ = helper2.ErrorServiceResponse(resJson.Code, resJson.Status, resJson.Message, resJson.Error, err)
+		}
+
+		return helper.ReturnResponse{
+			Code:    resJson.Code,
+			Status:  resJson.Status,
+			Message: resJson.Message,
+			Data:    userRes,
+		}, nil
+	})
+}
+
+func (service *AuthServiceImpl) Logout(ctx context.Context, request request.Logout, token string) helper.ReturnResponse {
+	err := service.Validate.Struct(request)
+	if err != nil {
+		helper2.ErrorServiceRequest(err)
+	}
+
+	return service.performTransaction(ctx, func(tx *sql.Tx) (helper.ReturnResponse, error) {
+		userReq := domain.User{
+			Token: token,
+		}
+
+		userRes, resJson, err := service.AuthRepository.Logout(ctx, tx, userReq)
 		if err != nil {
 			_, _ = helper2.ErrorServiceResponse(resJson.Code, resJson.Status, resJson.Message, resJson.Error, err)
 		}
