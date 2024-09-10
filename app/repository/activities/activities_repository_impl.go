@@ -224,7 +224,6 @@ func (repository *ActivitiesRepositoryImpl) Show(ctx context.Context, tx *sql.Tx
 
 	SQL := "SELECT id, title, slug, content, address, start_time, end_time, date, remainder, type, user_id FROM activities WHERE id = ? AND user_id = ?"
 	row := tx.QueryRowContext(ctx, SQL, activities.ID, foundUser.ID)
-
 	err = row.Scan(&activities.ID, &activities.Title, &activities.Slug, &activities.Content, &activities.Address, &activities.StartTime, &activities.EndTime, &activities.Date, &activities.Remainder, &activities.Type, &foundUser.ID)
 	if err == sql.ErrNoRows {
 		return activities, helper2.ResponseJson{
