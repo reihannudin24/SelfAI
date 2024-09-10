@@ -8,6 +8,8 @@ import (
 
 type Activities struct {
 	ID        int       `json:"id"`
+	Title     string    `json:"title"`
+	Slug      string    `json:"slug"`
 	Content   string    `json:"content"`
 	Address   string    `json:"address"`
 	StartTime time.Time `json:"start_time"`
@@ -20,6 +22,8 @@ type Activities struct {
 
 type ActivitiesResponse struct {
 	ID        int         `json:"id"`
+	Title     string      `json:"title"`
+	Slug      string      `json:"slug"`
 	Content   string      `json:"content"`
 	Address   string      `json:"address"`
 	StartTime time.Time   `json:"start_time"`
@@ -34,6 +38,8 @@ type ActivitiesResponse struct {
 func (data Activities) ToResponse() ActivitiesResponse {
 	return ActivitiesResponse{
 		ID:        data.ID,
+		Title:     data.Title,
+		Slug:      data.Slug,
 		Content:   data.Content,
 		Address:   data.Address,
 		StartTime: data.StartTime,

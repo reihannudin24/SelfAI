@@ -30,14 +30,9 @@ func NewUserRepository(db *sql.DB) UserRepository {
 func (repository *UserRepositoryImpl) Profile(ctx context.Context, tx *sql.Tx, user domain.User, slug string) (domain.User, helper2.ResponseJson, error) {
 	var SQL string
 	var row *sql.Row
-	//
-	//if slug != "" {
-	//	SQL = "SELECT email, username, firstname, lastname, phone_number, level, point, theme, bio, birthday, type FROM users WHERE  = ?"
-	//	row = tx.QueryRowContext(ctx, SQL, slug)
-	//} else {
+
 	SQL = "SELECT email, username, firstname, lastname, phone_number, level, point, theme, bio,  type FROM users WHERE token = ?"
 	row = tx.QueryRowContext(ctx, SQL, user.Token)
-	//}
 
 	err := row.Scan(
 		&user.Email,
