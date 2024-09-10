@@ -54,7 +54,7 @@ func (repository *NotificationRepositoryImpl) Push(ctx context.Context, tx *sql.
 		}, fmt.Errorf("user not found")
 	}
 
-	SQL := "INSERT INTO notification(title, slug , content, category, r_id , user_id) VALUES (?, ?, ?, ? ,?, ?"
+	SQL := "INSERT INTO notification(title, slug , content, category, r_id , user_id) VALUES (?, ?, ?, ? ,?, ?)"
 	_, err = tx.ExecContext(ctx, SQL, notification.Title, notification.Content, notification.Content, notification.Content, notification.Content, foundUser.ID)
 	if err != nil {
 		return notification, helper2.ResponseJson{
