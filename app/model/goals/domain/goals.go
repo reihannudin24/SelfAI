@@ -15,6 +15,7 @@ type Goals struct {
 	Date       time.Time `json:"date"`
 	NewGroupId int       `json:"new_group_id"`
 	UserId     int       `json:"user_id"`
+	Token      string    `json:"token"`
 }
 
 type GoalsResponse struct {

@@ -12,6 +12,7 @@ type CreateActivities struct {
 	Remainder string    `json:"remainder"`
 	Type      string    `json:"type"`
 	UserId    int       `json:"user_id"`
+	Token     string    `json:"token"`
 }
 
 type UpdateActivities struct {
@@ -26,8 +27,15 @@ type UpdateActivities struct {
 	Remainder string    `json:"remainder"`
 	Type      string    `json:"type"`
 	UserId    int       `json:"user_id"`
+	Token     string    `json:"token"`
 }
 
 type DeleteActivities struct {
-	Id int `json:"id"`
+	Id    int    `json:"id"`
+	Token string `json:"token"`
+}
+
+type ShowActivities struct {
+	Slug  string `json:"slug"`
+	Token string `json:"token"`
 }

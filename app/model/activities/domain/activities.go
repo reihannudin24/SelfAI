@@ -18,6 +18,7 @@ type Activities struct {
 	Remainder string    `json:"remainder"`
 	Type      string    `json:"type"`
 	UserId    int       `json:"user_id"`
+	Token     string    `json:"token"`
 }
 
 type ActivitiesResponse struct {

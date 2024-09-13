@@ -13,7 +13,7 @@ func ApiRouter(db *sql.DB, validate *validator.Validate) *httprouter.Router {
 	router := httprouter.New()
 	path.AuthRouter(router, db, validate)
 	path.UserRouter(router, db, validate)
-	path.FileRouter(router, db, validate)
+	path.ActivitiesRouter(router, db, validate)
 
 	log.Printf("Running Localhost server: http://localhost:3000/")
 

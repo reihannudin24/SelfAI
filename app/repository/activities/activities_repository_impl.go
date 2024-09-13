@@ -26,227 +26,157 @@ func NewActivitiesRepository(db *sql.DB) ActivitiesRepository {
 	}
 }
 
-func (repository *ActivitiesRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, activities domain.Activities, token string) (domain.Activities, helper2.ResponseJson, error) {
-	if tx == nil {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    500,
-			Message: "Transaction is nil",
-			Error:   "Internal Server Error",
-		}, fmt.Errorf("transaction is nil")
-	}
-
-	exists, foundUser, err := repository.helperRepository.ValidateExists("users", "token", token)
-	if err != nil {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    500,
-			Message: "Internal Server Error",
-			Error:   err.Error(),
-		}, err
-	}
-	if !exists {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    404,
-			Message: "User not found",
-			Error:   "User not found",
-		}, fmt.Errorf("user not found")
-	}
-
-	SQL := "INSERT INTO activities(title, slug , content, address, start_time, end_time, date, remainder, type, user_id) VALUES (?, ?, ?, ? ,?, ?, ?, ?, ?, ?)"
-	_, err = tx.ExecContext(ctx, SQL, activities.Title, activities.Slug, activities.Content, activities.Address, activities.StartTime, activities.EndTime, activities.Date, activities.Remainder, activities.Type, foundUser.ID)
-	if err != nil {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    500,
-			Message: fmt.Sprintf("Failed to add activity: %s", err.Error()),
-			Error:   err.Error(),
-		}, err
-	}
-
-	return activities, helper2.ResponseJson{
+func helperSuccessResponse(data domain.Activities) (domain.Activities, helper2.ResponseJson, error) {
+	return data, helper2.ResponseJson{
 		Status:  "OK",
 		Code:    201,
-		Message: "Successfully added activity",
+		Message: "Activity successfully added",
 		Error:   "",
 	}, nil
 }
 
-func (repository *ActivitiesRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, activities domain.Activities, token string) (domain.Activities, helper2.ResponseJson, error) {
+func helperSuccessShowResponse(data []domain.Activities) ([]domain.Activities, helper2.ResponseJson, error) {
+	return data, helper2.ResponseJson{
+		Status:  "OK",
+		Code:    200,
+		Message: "Activities retrieved successfully",
+		Error:   "",
+	}, nil
+}
+
+func helperErrorResponse(data domain.Activities, err error, status string, code int, message string) (domain.Activities, helper2.ResponseJson, error) {
+	var errMessage string
+	if err != nil {
+		errMessage = err.Error()
+	}
+	return data, helper2.ResponseJson{
+		Status:  status,
+		Code:    code,
+		Message: message,
+		Error:   errMessage,
+	}, fmt.Errorf(message)
+}
+
+func helperErrorShowResponse(data []domain.Activities, err error, status string, code int, message string) ([]domain.Activities, helper2.ResponseJson, error) {
+	var errMessage string
+	if err != nil {
+		errMessage = err.Error()
+	}
+	return data, helper2.ResponseJson{
+		Status:  status,
+		Code:    code,
+		Message: message,
+		Error:   errMessage,
+	}, fmt.Errorf(message)
+}
+
+func (repository *ActivitiesRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, activities domain.Activities, token string) (domain.Activities, helper2.ResponseJson, error) {
 	if tx == nil {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    500,
-			Message: "Transaction is nil",
-			Error:   "Internal Server Error",
-		}, fmt.Errorf("transaction is nil")
+		return helperErrorResponse(activities, nil, "ERROR", 500, "Internal server error")
 	}
 
 	exists, foundUser, err := repository.helperRepository.ValidateExists("users", "token", token)
 	if err != nil {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    500,
-			Message: "Internal Server Error",
-			Error:   err.Error(),
-		}, err
+		return helperErrorResponse(activities, err, "ERROR", 500, "Internal server error")
 	}
 	if !exists {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    404,
-			Message: "User not found",
-			Error:   "User not found",
-		}, fmt.Errorf("user not found")
+		return helperErrorResponse(activities, nil, "ERROR", 404, "User not found")
 	}
 
-	activities_exist, _, err := repository.helperRepository.ValidateExists("activities", "id", activities.ID)
+	SQL := "INSERT INTO activities(title, slug, content, address, start_time, end_time, date, remainder, type, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	_, err = tx.ExecContext(ctx, SQL, activities.Title, activities.Slug, activities.Content, activities.Address, activities.StartTime, activities.EndTime, activities.Date, activities.Remainder, activities.Type, foundUser.ID)
 	if err != nil {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    500,
-			Message: "Internal Server Error",
-			Error:   err.Error(),
-		}, err
+		return helperErrorResponse(activities, err, "ERROR", 400, "Failed to add activity")
 	}
-	if !activities_exist {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    404,
-			Message: "Activity does not exist",
-			Error:   "Activity not found",
-		}, fmt.Errorf("activity not found")
+
+	return helperSuccessResponse(activities)
+}
+
+func (repository *ActivitiesRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, activities domain.Activities, token string) (domain.Activities, helper2.ResponseJson, error) {
+	if tx == nil {
+		return helperErrorResponse(activities, nil, "ERROR", 500, "Internal server error")
+	}
+
+	exists, foundUser, err := repository.helperRepository.ValidateExists("users", "token", token)
+	if err != nil {
+		return helperErrorResponse(activities, err, "ERROR", 500, "Internal server error")
+	}
+
+	if !exists {
+		return helperErrorResponse(activities, nil, "ERROR", 404, "User not found")
+	}
+
+	activitiesExist, _, err := repository.helperRepository.ValidateExists("activities", "id", activities.ID)
+	if err != nil {
+		return helperErrorResponse(activities, err, "ERROR", 500, "Internal server error")
+	}
+	if !activitiesExist {
+		return helperErrorResponse(activities, nil, "ERROR", 404, "Activity not found")
 	}
 
 	SQL := "UPDATE activities SET title = ?, slug  = ?, content  = ?, address  = ?, start_time  = ?, end_time  = ?, date  = ?, remainder  = ?, type  = ? WHERE id = ? AND user_id = ?"
 	_, err = tx.ExecContext(ctx, SQL, activities.Title, activities.Slug, activities.Content, activities.Address, activities.StartTime, activities.EndTime, activities.Date, activities.Remainder, activities.Type, activities.ID, foundUser.ID)
 	if err != nil {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    500,
-			Message: fmt.Sprintf("Failed to update activity: %s", err.Error()),
-			Error:   err.Error(),
-		}, err
+		return helperErrorResponse(activities, err, "ERROR", 400, "Failed to update activity")
 	}
 
-	return activities, helper2.ResponseJson{
-		Status:  "OK",
-		Code:    200,
-		Message: "Successfully updated activity",
-		Error:   "",
-	}, nil
+	return helperSuccessResponse(activities)
 }
 
 func (repository *ActivitiesRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, activities domain.Activities, token string) (domain.Activities, helper2.ResponseJson, error) {
 	if tx == nil {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    500,
-			Message: "Transaction is nil",
-			Error:   "Internal Server Error",
-		}, fmt.Errorf("transaction is nil")
+		return helperErrorResponse(activities, nil, "ERROR", 500, "Internal server error")
 	}
 
 	exists, _, err := repository.helperRepository.ValidateExists("users", "token", token)
 	if err != nil {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    500,
-			Message: "Internal Server Error",
-			Error:   err.Error(),
-		}, err
-	}
-	if !exists {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    404,
-			Message: "User not found",
-			Error:   "User not found",
-		}, fmt.Errorf("user not found")
+		return helperErrorResponse(activities, err, "ERROR", 500, "Internal server error")
 	}
 
-	activities_exist, _, err := repository.helperRepository.ValidateExists("activities", "id", activities.ID)
-	if err != nil {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    500,
-			Message: "Internal Server Error",
-			Error:   err.Error(),
-		}, err
+	if !exists {
+		return helperErrorResponse(activities, nil, "ERROR", 404, "User not found")
 	}
-	if !activities_exist {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    404,
-			Message: "Activity does not exist",
-			Error:   "Activity not found",
-		}, fmt.Errorf("activity not found")
+
+	activitiesExist, _, err := repository.helperRepository.ValidateExists("activities", "id", activities.ID)
+	if err != nil {
+		return helperErrorResponse(activities, err, "ERROR", 500, "Internal server error")
+	}
+	if !activitiesExist {
+		return helperErrorResponse(activities, nil, "ERROR", 404, "Activity not found")
 	}
 
 	SQL := "DELETE FROM activities WHERE id = ?"
 	_, err = tx.ExecContext(ctx, SQL, activities.ID)
 	if err != nil {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    500,
-			Message: fmt.Sprintf("Failed to delete activity: %s", err.Error()),
-			Error:   err.Error(),
-		}, err
+		return helperErrorResponse(activities, err, "ERROR", 400, "Failed to delete activity")
 	}
 
-	return activities, helper2.ResponseJson{
-		Status:  "OK",
-		Code:    200,
-		Message: "Successfully deleted activity",
-		Error:   "",
-	}, nil
+	return helperSuccessResponse(activities)
 }
 
-func (repository *ActivitiesRepositoryImpl) Show(ctx context.Context, tx *sql.Tx, activities domain.Activities, token string) (domain.Activities, helper2.ResponseJson, error) {
+func (repository *ActivitiesRepositoryImpl) Show(ctx context.Context, tx *sql.Tx, activities domain.Activities, slug string, token string) (domain.Activities, helper2.ResponseJson, error) {
+	if tx == nil {
+		return helperErrorResponse(activities, nil, "ERROR", 500, "Internal server error")
+	}
+
 	exists, foundUser, err := repository.helperRepository.ValidateExists("users", "token", token)
 	if err != nil {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    500,
-			Message: "Internal Server Error",
-			Error:   err.Error(),
-		}, err
+		return helperErrorResponse(activities, err, "ERROR", 500, "Internal server error")
 	}
 	if !exists {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    404,
-			Message: "User not found",
-			Error:   "User not found",
-		}, fmt.Errorf("user not found")
+		return helperErrorResponse(activities, nil, "ERROR", 404, "User not found")
 	}
 
 	SQL := "SELECT id, title, slug, content, address, start_time, end_time, date, remainder, type, user_id FROM activities WHERE id = ? AND user_id = ?"
 	row := tx.QueryRowContext(ctx, SQL, activities.ID, foundUser.ID)
 	err = row.Scan(&activities.ID, &activities.Title, &activities.Slug, &activities.Content, &activities.Address, &activities.StartTime, &activities.EndTime, &activities.Date, &activities.Remainder, &activities.Type, &foundUser.ID)
 	if err == sql.ErrNoRows {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    404,
-			Message: "Activity not found",
-			Error:   "Activity not found",
-		}, fmt.Errorf("activity not found")
+		return helperErrorResponse(activities, nil, "ERROR", 404, "Activity not found")
 	} else if err != nil {
-		return activities, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    500,
-			Message: "Failed to retrieve activity",
-			Error:   err.Error(),
-		}, err
+		return helperErrorResponse(activities, err, "ERROR", 500, "Failed to retrieve activity")
 	}
 
-	return activities, helper2.ResponseJson{
-		Status:  "OK",
-		Code:    200,
-		Message: "Successfully retrieved activity",
-		Error:   "",
-	}, nil
+	return helperSuccessResponse(activities)
 }
 
 func (repository *ActivitiesRepositoryImpl) All(ctx context.Context, tx *sql.Tx, activities domain.Activities, token string) ([]domain.Activities, helper2.ResponseJson, error) {
@@ -254,31 +184,16 @@ func (repository *ActivitiesRepositoryImpl) All(ctx context.Context, tx *sql.Tx,
 
 	exists, foundUser, err := repository.helperRepository.ValidateExists("users", "token", token)
 	if err != nil {
-		return activitiesList, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    500,
-			Message: "Internal Server Error",
-			Error:   err.Error(),
-		}, err
+		return helperErrorShowResponse(activitiesList, err, "ERROR", 500, "Internal server error")
 	}
 	if !exists {
-		return activitiesList, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    404,
-			Message: "User not found",
-			Error:   "User not found",
-		}, fmt.Errorf("user not found")
+		return helperErrorShowResponse(activitiesList, nil, "ERROR", 404, "User not found")
 	}
 
 	SQL := "SELECT id, title, slug, content, address, start_time, end_time, date, remainder, type, user_id FROM activities WHERE user_id = ?"
 	rows, err := tx.QueryContext(ctx, SQL, foundUser.ID)
 	if err != nil {
-		return activitiesList, helper2.ResponseJson{
-			Status:  "ERROR",
-			Code:    500,
-			Message: "Failed to retrieve activities",
-			Error:   err.Error(),
-		}, err
+		return helperErrorShowResponse(activitiesList, err, "ERROR", 500, "Failed to retrieve activities")
 	}
 	defer rows.Close()
 
@@ -286,20 +201,10 @@ func (repository *ActivitiesRepositoryImpl) All(ctx context.Context, tx *sql.Tx,
 		var activity domain.Activities
 		err = rows.Scan(&activity.ID, &activity.Title, &activity.Slug, &activity.Content, &activity.Address, &activity.StartTime, &activity.EndTime, &activity.Date, &activity.Remainder, &activity.Type, &foundUser.ID)
 		if err != nil {
-			return activitiesList, helper2.ResponseJson{
-				Status:  "ERROR",
-				Code:    500,
-				Message: "Failed to parse activities",
-				Error:   err.Error(),
-			}, err
+			return helperErrorShowResponse(activitiesList, err, "ERROR", 500, "Failed to retrieve activities")
 		}
 		activitiesList = append(activitiesList, activity)
 	}
 
-	return activitiesList, helper2.ResponseJson{
-		Status:  "OK",
-		Code:    200,
-		Message: "Successfully retrieved all activities",
-		Error:   "",
-	}, nil
+	return helperSuccessShowResponse(activitiesList)
 }

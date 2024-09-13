@@ -1,4 +1,4 @@
-package domain
+package request
 
 import (
 	"time"
@@ -28,15 +28,4 @@ type UpdateGoals struct {
 // DeleteGoals represents the data structure for deleting a goal
 type DeleteGoals struct {
 	ID int `json:"id"`
-}
-
-// Show represents the data structure for displaying a goal
-type Show struct {
-	ID         int       `json:"id"`
-	Goal       string    `json:"goal"`
-	Type       string    `json:"type"`
-	Time       time.Time `json:"time"`
-	Date       time.Time `json:"date"`
-	NewGroupId int       `json:"new_group_id"`
-	UserId     int       `json:"user_id"`
 }
